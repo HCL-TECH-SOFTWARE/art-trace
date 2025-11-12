@@ -1,0 +1,29 @@
+{
+  "name": "art-trace",
+  "version": "1.0.0",
+  "description": "Utilities for parsing and analysing art-trace files captured from applications developed with the Code RealTime and Model RealTime tools",
+  "keywords": [
+    "art",
+    "trace",
+    "code-realtime",
+    "model-realtime"
+  ],
+  "license": "Apache-2.0",
+  "author": "Mattias Mohlin",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "dist/trace-parser.js",
+  "dependencies": {
+    "tokenizr": "^2.1.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
