@@ -15,6 +15,14 @@
   ],
   "type": "module",
   "main": "dist/trace-parser.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HCL-TECH-SOFTWARE/art-trace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HCL-TECH-SOFTWARE/art-trace/issues"
+  },
+  "homepage": "https://github.com/HCL-TECH-SOFTWARE/art-trace",
   "dependencies": {
     "tokenizr": "^2.1.0",
     "typescript": "^5.9.3"
