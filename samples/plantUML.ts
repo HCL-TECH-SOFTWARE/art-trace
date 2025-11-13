@@ -1,0 +1,70 @@
+// Sample: translate an .art-trace file to Plant-UML format
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import path, { dirname } from 'path';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+import readline from 'readline';
+import { parseLine, InstanceDecl, MessageOccurrance, TraceParserUtils } from 'art-trace';
+
+const filePath = path.join(__dirname, '../traces/MoreOrLess/trace-with-timestamps.art-trace');
+
+const lightGreen = '#37e937ff';
+const darkBlue = '#003366';
+const lightBlue = '#2e92b4';
+
+const input = fs.createReadStream(filePath, { encoding: 'utf8' });
+const rl = readline.createInterface({ input, crlfDelay: Infinity });
+try {
+    let i = 0;
+    let instanceMap = new Map<string, InstanceDecl>();
+    console.log("@startuml");
+    let applicationParticipantDeclared = false;
+    let systemParticipantDeclared = false;
+    let timerParticipantDeclared = false;
+    for await (const line of rl) {        
+        let astNode = parseLine(line, i++);
+        if (astNode instanceof InstanceDecl) {
+            instanceMap.set(astNode.address.text, astNode);
+        }   
+        else if (astNode instanceof MessageOccurrance) {
+            let senderInst = instanceMap.get(astNode.sender.text);
+            let receiverInst = instanceMap.get(astNode.receiver.text);
+            if (senderInst && receiverInst) {
+                if (!applicationParticipantDeclared && (TraceParserUtils.isTopCapsuleInstance(senderInst) || TraceParserUtils.isTopCapsuleInstance(receiverInst))) {
+                    applicationParticipantDeclared = true;
+                    console.log(`participant application ${lightGreen}`);
+                }
+                if (!systemParticipantDeclared && (TraceParserUtils.isSystemInstance(senderInst) || TraceParserUtils.isSystemInstance(receiverInst))) {
+                    systemParticipantDeclared = true;
+                    console.log(`participant "<system>" ${lightBlue}`);
+                }
+                if (!timerParticipantDeclared && (TraceParserUtils.isTimerInstance(senderInst) || TraceParserUtils.isTimerInstance(receiverInst))) {
+                    timerParticipantDeclared = true;
+                    console.log(`participant "<timer>" ${lightBlue}`);
+                }
+
+                let senderLifeline = getLifeLineText(senderInst);
+                let receiverLifeline = getLifeLineText(receiverInst);            
+
+                let eventData = typeof astNode.data === 'string' ? astNode.data : JSON.stringify(astNode.data);
+                console.log(`"${senderLifeline}" -> "${receiverLifeline}": ${astNode.event.text}(${eventData})`);
+            }
+        }
+    }
+    console.log("@enduml");
+}
+finally {
+    rl.close();
+    input.close();
+}
+
+function getLifeLineText(participant: InstanceDecl): string {
+    if (TraceParserUtils.isSystemInstance(participant))
+        return "<system>";
+    if (TraceParserUtils.isTimerInstance(participant))
+        return "<timer>";
+
+    return TraceParserUtils.structureExprToString(participant.structureExpr);
+}

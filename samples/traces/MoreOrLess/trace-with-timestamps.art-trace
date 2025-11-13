@@ -1,0 +1,101 @@
+// Trace configuration:
+// {
+//     "timestamps": {
+//         "documentation": {
+//             "mode": "absolute/relative(default)"
+//             , "precision": "milli/micro/nano(default)"
+//             , "time1_send": "true/false(default), time when sender places message into the message queue"
+//             , "time2_receive": "true/false(default), time when controller delivers the message to the receiver"
+//             , "time3_handle": "true/false(default), time when message was processed by the receiver"
+//         }
+//         , "mode": "relative"
+//         , "precision": "nano"
+//         , "time1_send": false
+//         , "time2_receive": true
+//         , "time3_handle": true
+//     }
+//     , "trace": {
+//         "start_time": "2025-11-11 12:05:14.586791900"
+//     }
+// }
+instance 0x22cc6827c50 Top : RTSuperActor
+instance 0x22cc6833550 specials : RTTimerActor
+0x22cc6827c50 Top -> 0x22cc6833550 specials : initialize() { "time2_receive": 3216600, "time3_handle": 4998400 }
+0x22cc6833550 specials -> 0x22cc6827c50 Top.timer : timeout() { "time2_receive": 3844200, "time3_handle": 13415100 }
+instance 0x22cc6833390 guesser[0] : Guesser
+instance 0x22cc6833260 application : Top
+0x22cc6833390 guesser.guesserP -> 0x22cc6833260 application.guesserP[0] : ready() { "time2_receive": 13418700, "time3_handle": 13617700 }
+instance 0x22cc680a130 guesser[1] : Guesser
+0x22cc680a130 guesser.guesserP -> 0x22cc6833260 application.guesserP[1] : ready() { "time2_receive": 13618900, "time3_handle": 13777300 }
+instance 0x22cc680a230 guesser[2] : Guesser
+0x22cc680a230 guesser.guesserP -> 0x22cc6833260 application.guesserP[2] : ready() { "time2_receive": 13779100, "time3_handle": 13929400 }
+instance 0x22cc680dca0 guesser[3] : Guesser
+0x22cc680dca0 guesser.guesserP -> 0x22cc6833260 application.guesserP[3] : ready() { "time2_receive": 13930500, "time3_handle": 14069800 }
+instance 0x22cc680dda0 guesser[4] : Guesser
+0x22cc680dda0 guesser.guesserP -> 0x22cc6833260 application.guesserP[4] : ready() { "time2_receive": 14070700, "time3_handle": 14217100 }
+instance 0x22cc680dea0 guesser[5] : Guesser
+0x22cc680dea0 guesser.guesserP -> 0x22cc6833260 application.guesserP[5] : ready() { "time2_receive": 14218000, "time3_handle": 14362400 }
+instance 0x22cc680dfa0 guesser[6] : Guesser
+0x22cc680dfa0 guesser.guesserP -> 0x22cc6833260 application.guesserP[6] : ready() { "time2_receive": 14363400, "time3_handle": 14535800 }
+instance 0x22cc680e0a0 guesser[7] : Guesser
+0x22cc680e0a0 guesser.guesserP -> 0x22cc6833260 application.guesserP[7] : ready() { "time2_receive": 14537600, "time3_handle": 14686600 }
+instance 0x22cc680e9b0 guesser[8] : Guesser
+0x22cc680e9b0 guesser.guesserP -> 0x22cc6833260 application.guesserP[8] : ready() { "time2_receive": 14687700, "time3_handle": 14836400 }
+instance 0x22cc680eab0 guesser[9] : Guesser
+0x22cc680eab0 guesser.guesserP -> 0x22cc6833260 application.guesserP[9] : ready() { "time2_receive": 14837500, "time3_handle": 14980700 }
+instance 0x22cc680ebb0 number : Number
+0x22cc680ebb0 number.cmdP -> 0x22cc6833260 application.cmdP : ready() { "time2_receive": 14981800, "time3_handle": 15677900 }
+0x22cc6833550 specials -> 0x22cc6833260 application.timerP : timeout() { "time2_receive": 516534200, "time3_handle": 518649800 }
+0x22cc6833260 application.guesserP[0] -> 0x22cc6833390 guesser.guesserP : doConnect(RTActorId 0x22cc680ebb0) { "time2_receive": 518656200, "time3_handle": 521348600 }
+0x22cc680ebb0 number.numberP -> 0x22cc6833390 guesser.numberP : rtBound() { "time2_receive": 521352800, "time3_handle": 523571600 }
+0x22cc6833390 guesser.numberP -> 0x22cc680ebb0 number.numberP : askHint() { "time2_receive": 523575400, "time3_handle": 524805600 }
+0x22cc680ebb0 number.numberP -> 0x22cc6833390 guesser.numberP : sendHint(Hint{current 100,isLess true,max 100,min 0}) { "time2_receive": 524812900, "time3_handle": 525691900 }
+0x22cc6833390 guesser.numberP -> 0x22cc680ebb0 number.numberP : guess(unsigned 50) { "time2_receive": 525697500, "time3_handle": 526099600 }
+instance 0x0 external : External
+0x0 external -> 0x22cc6833390 guesser.numberP : sendAnswer(bool false) { "time2_receive": 526101700, "time3_handle": 526109500 }
+0x22cc6833390 guesser.guesserP -> 0x22cc6833260 application.guesserP[0] : notFound() { "time2_receive": 526111000, "time3_handle": 527352400 }
+0x0 external -> 0x22cc6833390 guesser.numberP : rtUnbound() { "time2_receive": 527357800, "time3_handle": 527700200 }
+0x22cc6833550 specials -> 0x22cc6833260 application.timerP : timeout() { "time2_receive": 1032776700, "time3_handle": 1033875900 }
+0x22cc6833260 application.guesserP[1] -> 0x22cc680a130 guesser.guesserP : doConnect(RTActorId 0x22cc680ebb0) { "time2_receive": 1033878400, "time3_handle": 1034852300 }
+0x22cc680ebb0 number.numberP -> 0x22cc680a130 guesser.numberP : rtBound() { "time2_receive": 1034853800, "time3_handle": 1035635000 }
+0x22cc680a130 guesser.numberP -> 0x22cc680ebb0 number.numberP : askHint() { "time2_receive": 1035642900, "time3_handle": 1036343400 }
+0x22cc680ebb0 number.numberP -> 0x22cc680a130 guesser.numberP : sendHint(Hint{current 50,isLess false,max 100,min 50}) { "time2_receive": 1036344900, "time3_handle": 1036813900 }
+0x22cc680a130 guesser.numberP -> 0x22cc680ebb0 number.numberP : guess(unsigned 75) { "time2_receive": 1036815300, "time3_handle": 1036920900 }
+0x0 external -> 0x22cc680a130 guesser.numberP : sendAnswer(bool false) { "time2_receive": 1036921900, "time3_handle": 1036924900 }
+0x22cc680a130 guesser.guesserP -> 0x22cc6833260 application.guesserP[1] : notFound() { "time2_receive": 1036925700, "time3_handle": 1037775000 }
+0x0 external -> 0x22cc680a130 guesser.numberP : rtUnbound() { "time2_receive": 1037776200, "time3_handle": 1038418600 }
+0x22cc6833550 specials -> 0x22cc6833260 application.timerP : timeout() { "time2_receive": 1546646700, "time3_handle": 1547259400 }
+0x22cc6833260 application.guesserP[2] -> 0x22cc680a230 guesser.guesserP : doConnect(RTActorId 0x22cc680ebb0) { "time2_receive": 1547263000, "time3_handle": 1549165200 }
+0x22cc680ebb0 number.numberP -> 0x22cc680a230 guesser.numberP : rtBound() { "time2_receive": 1549167100, "time3_handle": 1550061000 }
+0x22cc680a230 guesser.numberP -> 0x22cc680ebb0 number.numberP : askHint() { "time2_receive": 1550062400, "time3_handle": 1550585900 }
+0x22cc680ebb0 number.numberP -> 0x22cc680a230 guesser.numberP : sendHint(Hint{current 75,isLess true,max 75,min 50}) { "time2_receive": 1550587200, "time3_handle": 1550943600 }
+0x22cc680a230 guesser.numberP -> 0x22cc680ebb0 number.numberP : guess(unsigned 63) { "time2_receive": 1550944700, "time3_handle": 1551182900 }
+0x0 external -> 0x22cc680a230 guesser.numberP : sendAnswer(bool false) { "time2_receive": 1551184600, "time3_handle": 1551188300 }
+0x22cc680a230 guesser.guesserP -> 0x22cc6833260 application.guesserP[2] : notFound() { "time2_receive": 1551189200, "time3_handle": 1552361000 }
+0x0 external -> 0x22cc680a230 guesser.numberP : rtUnbound() { "time2_receive": 1552362200, "time3_handle": 1552648300 }
+0x22cc6833550 specials -> 0x22cc6833260 application.timerP : timeout() { "time2_receive": 2051576600, "time3_handle": 2052665000 }
+0x22cc6833260 application.guesserP[3] -> 0x22cc680dca0 guesser.guesserP : doConnect(RTActorId 0x22cc680ebb0) { "time2_receive": 2052670600, "time3_handle": 2054638900 }
+0x22cc680ebb0 number.numberP -> 0x22cc680dca0 guesser.numberP : rtBound() { "time2_receive": 2054642200, "time3_handle": 2056306500 }
+0x22cc680dca0 guesser.numberP -> 0x22cc680ebb0 number.numberP : askHint() { "time2_receive": 2056310500, "time3_handle": 2058392700 }
+0x22cc680ebb0 number.numberP -> 0x22cc680dca0 guesser.numberP : sendHint(Hint{current 63,isLess true,max 63,min 50}) { "time2_receive": 2058396300, "time3_handle": 2059341100 }
+0x22cc680dca0 guesser.numberP -> 0x22cc680ebb0 number.numberP : guess(unsigned 57) { "time2_receive": 2059348500, "time3_handle": 2059758100 }
+0x0 external -> 0x22cc680dca0 guesser.numberP : sendAnswer(bool false) { "time2_receive": 2059760900, "time3_handle": 2059767300 }
+0x22cc680dca0 guesser.guesserP -> 0x22cc6833260 application.guesserP[3] : notFound() { "time2_receive": 2059769000, "time3_handle": 2061450500 }
+0x0 external -> 0x22cc680dca0 guesser.numberP : rtUnbound() { "time2_receive": 2061456600, "time3_handle": 2061956200 }
+0x22cc6833550 specials -> 0x22cc6833260 application.timerP : timeout() { "time2_receive": 2571432700, "time3_handle": 2575458800 }
+0x22cc6833260 application.guesserP[4] -> 0x22cc680dda0 guesser.guesserP : doConnect(RTActorId 0x22cc680ebb0) { "time2_receive": 2575464600, "time3_handle": 2576667200 }
+0x22cc680ebb0 number.numberP -> 0x22cc680dda0 guesser.numberP : rtBound() { "time2_receive": 2576674300, "time3_handle": 2577509400 }
+0x22cc680dda0 guesser.numberP -> 0x22cc680ebb0 number.numberP : askHint() { "time2_receive": 2577511000, "time3_handle": 2578011400 }
+0x22cc680ebb0 number.numberP -> 0x22cc680dda0 guesser.numberP : sendHint(Hint{current 57,isLess false,max 63,min 57}) { "time2_receive": 2578012900, "time3_handle": 2578412300 }
+0x22cc680dda0 guesser.numberP -> 0x22cc680ebb0 number.numberP : guess(unsigned 60) { "time2_receive": 2578413800, "time3_handle": 2578867500 }
+0x0 external -> 0x22cc680dda0 guesser.numberP : sendAnswer(bool false) { "time2_receive": 2578869100, "time3_handle": 2578931400 }
+0x22cc680dda0 guesser.guesserP -> 0x22cc6833260 application.guesserP[4] : notFound() { "time2_receive": 2578932500, "time3_handle": 2580032100 }
+0x0 external -> 0x22cc680dda0 guesser.numberP : rtUnbound() { "time2_receive": 2580033600, "time3_handle": 2580401600 }
+0x22cc6833550 specials -> 0x22cc6833260 application.timerP : timeout() { "time2_receive": 3093621500, "time3_handle": 3097145200 }
+0x22cc6833260 application.guesserP[5] -> 0x22cc680dea0 guesser.guesserP : doConnect(RTActorId 0x22cc680ebb0) { "time2_receive": 3097153500, "time3_handle": 3099809900 }
+0x22cc680ebb0 number.numberP -> 0x22cc680dea0 guesser.numberP : rtBound() { "time2_receive": 3099814800, "time3_handle": 3101654600 }
+0x22cc680dea0 guesser.numberP -> 0x22cc680ebb0 number.numberP : askHint() { "time2_receive": 3101659200, "time3_handle": 3102890500 }
+0x22cc680ebb0 number.numberP -> 0x22cc680dea0 guesser.numberP : sendHint(Hint{current 60,isLess true,max 60,min 57}) { "time2_receive": 3102894500, "time3_handle": 3104804800 }
+0x22cc680dea0 guesser.numberP -> 0x22cc680ebb0 number.numberP : guess(unsigned 59) { "time2_receive": 3104808200, "time3_handle": 3105534100 }
+0x0 external -> 0x22cc680dea0 guesser.numberP : sendAnswer(bool true) { "time2_receive": 3105536500, "time3_handle": 3105541900 }
+0x22cc680dea0 guesser.guesserP -> 0x22cc6833260 application.guesserP[5] : found(unsigned 59) { "time2_receive": 3105543200, "time3_handle": 3107114300 }

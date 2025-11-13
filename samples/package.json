@@ -1,0 +1,15 @@
+{
+  "name": "art-trace-samples",
+  "version": "1.0.0",
+  "author": "Mattias Mohlin",
+  "type":"module",
+  "dependencies": {
+    "typescript": "^5.9.3"
+  },
+  "scripts": {
+    "build": "tsc"    
+  },
+  "devDependencies": {
+    "@types/node": "^24.8.1"
+  }
+}

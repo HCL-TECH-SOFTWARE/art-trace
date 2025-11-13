@@ -6,7 +6,7 @@ import {Tokenizr} from "tokenizr"
 export type Token = InstanceType<typeof Tokenizr.Token>;
 
 /**
- * Utilities for parsing trace files
+ * Utilities for parsing .art-trace files
  * @author Mattias Mohlin
  */
 
@@ -71,15 +71,29 @@ function initScanner() : Tokenizr | null {
     lexer.rule(/\(.*$/, (ctx, match) => {
         let str = match[0];            
         let i = str.lastIndexOf(')');
-        if (i != -1) 
-            ctx.accept("event-with-data", str.substring(1, i));
+        let md = new MessageData();
+        if (i != -1) {
+            md.paramData = str.substring(1, i);
+            try {
+                let j = JSON.parse(str.substring(i + 1));
+                if (j.time2_receive !== undefined)
+                    md.time2_receive = j.time2_receive;
+                if (j.time3_handle !== undefined)
+                    md.time3_handle = j.time3_handle;
+            }
+            catch (e) {
+                // No JSON data found after closing parenthesis
+            }
+        }
         else
-            ctx.accept("event-with-data", str.substring(1)); // Missing closing parenthesis
+            md.paramData = str.substring(1); // Missing closing parenthesis
+
+        ctx.accept("event-with-data", md);
     });        
     // Colon (:)
     lexer.rule(/\:/, (ctx, match) => {
         ctx.accept("colon");
-    });        
+    });
 
     return lexer;
 }
@@ -98,7 +112,8 @@ export function parseLine(line : string, lineNumber : number) : InstanceDecl | M
         return null;
 
     lexer.input(line);
-    //lexer.debug(true); // sometimes useful but slow    
+    //lexer.debug(true);
+    
 
     try {                
         let tokens = lexer.tokens();
@@ -139,9 +154,13 @@ export class InstanceDecl {
     dynamicType : Token; // Dynamic instance type (omitted for built-in TargetRTS instances)
 }
 
+/**
+ * Data associated with a message
+ */
 export class MessageData {
-    data : string;
-    receiveTime : number; // Unix epoch in nanoseconds
+    paramData : string = ''; // Parameter data for the message
+    time2_receive : number | undefined = undefined;
+    time3_handle : number | undefined = undefined;
 }
 
 /**
@@ -157,7 +176,7 @@ export class MessageOccurrance {
     senderPortIndex: number;
     receiverPortIndex: number;
     event: Token;
-    data: string | MessageData;
+    data: MessageData; // Data associated with the message
 }
 
 /**
@@ -165,6 +184,7 @@ export class MessageOccurrance {
  */
 export class Note {    
     text: string;
+    line?: number;
 }
 
 /**
@@ -341,14 +361,7 @@ function isMessageOccurrance(tokens : Token[]) : MessageOccurrance | null {
     // : event with data (mandatory)
     if (! matchTokens(index, tokens, ['colon', 'name', 'event-with-data'], (matchedToken) => {
         messageOccurrance.event = matchedToken[1];
-        // This is always the last token.
-        // Token text should be JSON, but for backwards compatibility we accept any text.
-        try {
-            messageOccurrance.data = JSON.parse(matchedToken[2].value as string);
-        } 
-        catch (e) {
-            messageOccurrance.data = matchedToken[2].value as string;
-        }  
+        messageOccurrance.data = matchedToken[2].value as MessageData;
     })) 
         return null; // syntax error
 
@@ -365,7 +378,8 @@ function isNote(tokens : Token[]) : Note | null {
     let index = {"value" : 0};
     // sender address and name (mandatory)
     if (! matchTokens(index, tokens, ['kw:note', 'string'], (matchedToken) => {
-        note.text = matchedToken[1].value as string;        
+        note.text = matchedToken[1].value as string;
+        note.line = matchedToken[0].line;        
     })) 
         return null; // syntax error
 

@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {    
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ES2019",
+    "allowJs": true,
+    "resolveJsonModule": true,
+    "moduleDetection": "force",
+    "isolatedModules": true,    
+    "moduleResolution": "node",
+    "baseUrl": "./",
+    "paths": {
+      "*": ["node_modules/*"]
+    },
+
+    "noImplicitOverride": true,
+
+    "module": "ESNext",
+    "outDir": "out",
+    "rootDir": "./",
+    "sourceMap": true,
+
+    "declaration": true,
+    "declarationMap": true,
+
+    "lib": ["ES2019"]
+  },
+  "include": ["./*.ts"]
+}
