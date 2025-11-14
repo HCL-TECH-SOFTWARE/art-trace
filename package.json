@@ -1,6 +1,6 @@
 {
   "name": "art-trace",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Utilities for parsing and analysing art-trace files captured from applications developed with the Code RealTime and Model RealTime tools",
   "keywords": [
     "art",

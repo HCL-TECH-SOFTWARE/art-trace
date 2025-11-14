@@ -1,3 +1,6 @@
+# 1.0.2 (2025-11-14)
+* Allow addresses in uppercase (typical for applications built with Visual Studio compilers)
+
 # 1.0.1 (2025-11-14)
 * Support CommonJS too
 

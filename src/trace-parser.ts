@@ -44,7 +44,7 @@ function initScanner() : Tokenizr | null {
         ctx.ignore();
     });
     // Address
-    lexer.rule(/0x([0-9a-f])+/, (ctx, match) => {
+    lexer.rule(/0x[0-9a-fA-F]+/, (ctx, match) => {
         ctx.accept("address");
     });
     // Number
