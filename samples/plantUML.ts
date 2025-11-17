@@ -65,7 +65,7 @@ try {
                 let senderLifeline = getLifeLineText(senderInst);
                 let receiverLifeline = getLifeLineText(receiverInst);            
 
-                let eventData = typeof astNode.data === 'string' ? astNode.data : JSON.stringify(astNode.data);
+                let eventData = astNode.data.paramData;
                 console.log(`"${senderLifeline}" -> "${receiverLifeline}": ${astNode.event.text}(${eventData})`);
             }
         }

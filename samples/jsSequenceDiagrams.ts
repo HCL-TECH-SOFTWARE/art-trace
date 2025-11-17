@@ -48,7 +48,7 @@ try {
             let senderType = senderInst ? senderInst.dynamicType.text : "";
             let receiverType = receiverInst ? receiverInst.dynamicType.text : "";
 
-            let eventData = typeof astNode.data === 'string' ? astNode.data : JSON.stringify(astNode.data);
+            let eventData = astNode.data.paramData;
             console.log(`${astNode.senderName}(${senderType}) -> ${astNode.receiverName}(${receiverType}) : ${astNode.event.text}(${eventData})`);
         }
     }
