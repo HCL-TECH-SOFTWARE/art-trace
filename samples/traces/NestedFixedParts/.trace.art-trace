@@ -1,0 +1,31 @@
+// Trace configuration:
+// {
+//     "timestamps": {
+//         "documentation": {
+//             "mode": "absolute/relative(default)"
+//             , "precision": "milli/micro/nano(default)"
+//             , "time1_send": "true/false(default), time when sender places message into the message queue"
+//             , "time2_receive": "true/false(default), time when controller delivers the message to the receiver"
+//             , "time3_handle": "true/false(default), time when message was processed by the receiver"
+//         }
+//         , "mode": "relative"
+//         , "precision": "nano"
+//         , "time1_send": false
+//         , "time2_receive": true
+//         , "time3_handle": true
+//     }
+//     , "trace": {
+//         "start_time": "2025-11-21 10:07:51.229201700"
+//     }
+// }
+instance 0x1c4f4a07ea0 Top : RTSuperActor
+instance 0x1c4f4a137a0 specials : RTTimerActor
+0x1c4f4a07ea0 Top -> 0x1c4f4a137a0 specials : initialize() { "time2_receive": 2222400, "time3_handle": 3912900 }
+instance 0x1c4f4a13520 application1.application2 : HelloWorld
+0x1c4f4a07ea0 Top -> 0x1c4f4a13520 application2 : initialize() { "time2_receive": 2887500, "time3_handle": 3926700 }
+instance 0x1c4f4a134b0 application1 : TTOP
+0x1c4f4a07ea0 Top -> 0x1c4f4a134b0 application1 : initialize() { "time2_receive": 2887500, "time3_handle": 3929700 }
+instance 0x1c4f4919380 application : TTOP1
+0x1c4f4a07ea0 Top -> 0x1c4f4919380 application : initialize() { "time2_receive": 2887400, "time3_handle": 3931100 }
+0x1c4f4a137a0 specials -> 0x1c4f4a07ea0 Top.timer : timeout() { "time2_receive": 2874500, "time3_handle": 3934400 }
+0x1c4f4a137a0 specials -> 0x1c4f4a13520 application2.timer : timeout() { "time2_receive": 2010860700, "time3_handle": 2011422400 }

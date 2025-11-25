@@ -19,6 +19,30 @@
             "preLaunchTask": "tsc: build - tsconfig.json",
             "outFiles": ["${workspaceFolder}/out/**/*.js"],
             "type": "node"
+        },
+        {
+            "name": "messageHandlingPerformance",
+            "program": "${workspaceFolder}/messageHandlingPerformance.ts",
+            "request": "launch",
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "outFiles": ["${workspaceFolder}/out/**/*.js"],
+            "type": "node"
+        },
+        {
+            "name": "sortOnReceiveTime",
+            "program": "${workspaceFolder}/sortOnReceiveTime.ts",
+            "request": "launch",
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "outFiles": ["${workspaceFolder}/out/**/*.js"],
+            "type": "node"
+        },
+        {
+            "name": "googleTraceEventFormat",
+            "program": "${workspaceFolder}/googleTraceEventFormat.ts",
+            "request": "launch",
+            "preLaunchTask": "tsc: build - tsconfig.json",
+            "outFiles": ["${workspaceFolder}/out/**/*.js"],
+            "type": "node"
         }
     ]
 }
