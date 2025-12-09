@@ -18,143 +18,171 @@ import {Tokenizr} from "tokenizr"
 export type Token = InstanceType<typeof Tokenizr.Token>;
 
 /**
- * Utilities for parsing .art-trace files
+ * Utility for parsing an .art-trace file
  * @author Mattias Mohlin
  */
+export class TraceParser {
+    private lexer : Tokenizr;
+    private traceConfigUnderConstruction : string | undefined = undefined;
 
-let initializedScanner : Tokenizr | null = null;
+    // The trace configuration found in the trace (if any), parsed into an object from JSON
+    traceConfiguration : any | undefined = undefined;    
 
-// Initialize trace file scanner
-function initScanner() : Tokenizr | null {
-    if (initializedScanner)
-        return initializedScanner;
+    /**
+     * Construct the TraceParser.
+     * @throws an error if an internal error occurs (e.g. if the scanner could not be initialized)
+     */
+    constructor() {
+        this.lexer = new Tokenizr();        
 
-    let lexer = new Tokenizr();
-
-    initializedScanner = lexer;
-
-    // Keyword
-    lexer.rule(/instance|note/, (ctx, match) => {
-        ctx.accept("keyword");
-    });
-    // Name
-    lexer.rule(/[a-zA-Z_][a-zA-Z0-9_]*/, (ctx, match) => {
-        ctx.accept("name");
-    });        
-    // String
-    lexer.rule(/"((?:\\"|[^\r\n])*)"/, (ctx, match) => {
-        let str = match[1].replace(/\\"/g, "\"");
-        ctx.accept("string", str);
-    });                
-    // Line comment (//)
-    // Note that we don't support block comments (/* */) since we are parsing line-by-line
-    lexer.rule(/\/\/.*?$/, (ctx, match) => {
-        ctx.ignore();
-    });
-    // Whitespace
-    lexer.rule(/[ \t\r\n]+/, (ctx, match) => {
-        ctx.ignore();
-    });
-    // Address
-    lexer.rule(/0x[0-9a-fA-F]+/, (ctx, match) => {
-        ctx.accept("address");
-    });
-    // Number
-    lexer.rule(/[0-9]+/, (ctx, match) => {
-        ctx.accept("number", parseInt(match[0]))
-    })        
-    // Arrow (->)
-    lexer.rule(/\-\>/, (ctx, match) => {
-        ctx.accept("arrow");
-    });
-    // Dot (.)
-    lexer.rule(/\./, (ctx, match) => {
-        ctx.accept("dot");
-    });
-    // Open square bracket ([)
-    lexer.rule(/\[/, (ctx, match) => {
-        ctx.accept("open-square-bracket");
-    });
-    // Close square bracket (])
-    lexer.rule(/\]/, (ctx, match) => {
-        ctx.accept("close-square-bracket");
-    });
-    // Event data (any text enclosed in parentheses)
-    lexer.rule(/\(.*$/, (ctx, match) => {
-        let str = match[0];            
-        let i = str.lastIndexOf(')');
-        let md = new MessageData();
-        if (i != -1) {
-            md.paramData = str.substring(1, i);
+        // Keyword
+        this.lexer.rule(/instance|note/, (ctx, match) => {
+            ctx.accept("keyword");
+        });
+        // Name
+        this.lexer.rule(/[a-zA-Z_][a-zA-Z0-9_]*/, (ctx, match) => {
+            ctx.accept("name");
+        });        
+        // String
+        this.lexer.rule(/"((?:\\"|[^\r\n])*)"/, (ctx, match) => {
+            let str = match[1].replace(/\\"/g, "\"");
+            ctx.accept("string", str);
+        });                
+        // Line comment (//)
+        // Note that we don't support block comments (/* */) since we are parsing line-by-line
+        this.lexer.rule(/\/\/.*?$/, (ctx, match) => {            
+            if (!this.traceConfigUnderConstruction && match[0] == '// {') {
+                this.traceConfigUnderConstruction = '{'; // Begin trace configuration
+            }
+            else if (this.traceConfigUnderConstruction && match[0] == '// }') {
+                this.traceConfigUnderConstruction += '}'; // End trace configuration
+                try {
+                    this.traceConfiguration = JSON.parse(this.traceConfigUnderConstruction);
+                }
+                catch (e) {
+                    // Invalid trace configuration JSON
+                    console.error("Warning: Invalid trace configuration JSON found in trace.");
+                }
+                this.traceConfigUnderConstruction = undefined
+            }
+            else if (this.traceConfigUnderConstruction) {
+                this.traceConfigUnderConstruction += match[0].substring(2).trim();
+            }
+            ctx.ignore();
+        });
+        // Whitespace
+        this.lexer.rule(/[ \t\r\n]+/, (ctx, match) => {
+            ctx.ignore();
+        });
+        // Address
+        this.lexer.rule(/0x[0-9a-fA-F]+/, (ctx, match) => {
+            ctx.accept("address");
+        });
+        // Number
+        this.lexer.rule(/[0-9]+/, (ctx, match) => {
+            ctx.accept("number", parseInt(match[0]))
+        })        
+        // Arrow (->)
+        this.lexer.rule(/\-\>/, (ctx, match) => {
+            ctx.accept("arrow");
+        });
+        // Dot (.)
+        this.lexer.rule(/\./, (ctx, match) => {
+            ctx.accept("dot");
+        });
+        // Open square bracket ([)
+        this.lexer.rule(/\[/, (ctx, match) => {
+            ctx.accept("open-square-bracket");
+        });
+        // Close square bracket (])
+        this.lexer.rule(/\]/, (ctx, match) => {
+            ctx.accept("close-square-bracket");
+        });
+        // Instance data (JSON object)
+        this.lexer.rule(/\{.*$/, (ctx, match) => {
+            let str = match[0];                    
+            let id = new InstanceData();
             try {
-                let j = JSON.parse(str.substring(i + 1));
-                if (j.time2_receive !== undefined)
-                    md.time2_receive = j.time2_receive;
-                if (j.time3_handle !== undefined)
-                    md.time3_handle = j.time3_handle;
+                let j = JSON.parse(str);
+                if (j.thread_name !== undefined)
+                    id.thread_name = j.thread_name;
             }
             catch (e) {
-                // No JSON data found after closing parenthesis
+                // No valid JSON data found 
+            }        
+
+            ctx.accept("instance-data", id);
+        });   
+        // Message data (any text enclosed in parentheses, optionally followed by JSON)
+        this.lexer.rule(/\(.*$/, (ctx, match) => {
+            let str = match[0];            
+            let i = str.lastIndexOf(')');
+            let md = new MessageData();
+            if (i != -1) {
+                md.paramData = str.substring(1, i);
+                try {
+                    let j = JSON.parse(str.substring(i + 1));
+                    if (j.time2_receive !== undefined)
+                        md.time2_receive = j.time2_receive;
+                    if (j.time3_handle !== undefined)
+                        md.time3_handle = j.time3_handle;
+                }
+                catch (e) {
+                    // No JSON data found after closing parenthesis
+                }
             }
-        }
-        else
-            md.paramData = str.substring(1); // Missing closing parenthesis
+            else
+                md.paramData = str.substring(1); // Missing closing parenthesis
 
-        ctx.accept("event-with-data", md);
-    });        
-    // Colon (:)
-    lexer.rule(/\:/, (ctx, match) => {
-        ctx.accept("colon");
-    });
-
-    return lexer;
-}
-
-
-/**
- * Parse a line from a trace file
- * @param line a line from a trace file to scan
- * @param line number in the document
- * @returns an AST node or null in case of syntax error
- * @throws an error if an internal error occurs (e.g. if the scanner could not be initialized)
- */
-export function parseLine(line : string, lineNumber : number) : InstanceDecl | MessageOccurrance | Note | null {
-    const lexer = initScanner(); // throws error in case scanner could not be initialized
-    if (lexer == null)
-        return null;
-
-    lexer.input(line);
-    //lexer.debug(true);
-    
-
-    try {                
-        let tokens = lexer.tokens();
-        if (tokens.length == 1 && tokens[0].isA("EOF"))
-            return null; // Empty line (or only containing whitespace)
-
-        for (let token of tokens) {
-            token.line = lineNumber;
-        }
-
-        // Scanning successful, now parse the tokens
-        let instanceDecl = isInstanceDecl(tokens);
-        if (instanceDecl)
-            return instanceDecl;
-
-        let messageOccurrance = isMessageOccurrance(tokens);
-        if (messageOccurrance)
-            return messageOccurrance;
-
-        let note = isNote(tokens);
-        if (note)
-            return note;
-
-        return null;
+            ctx.accept("event-with-data", md);
+        });        
+        // Colon (:)
+        this.lexer.rule(/\:/, (ctx, match) => {
+            ctx.accept("colon");
+        });        
     }
-    catch (e) {
-        // Syntax error
-        return null;
+
+    /**
+     * Parse a line from a trace file
+     * @param line a line from a trace file to scan
+     * @param line number in the document
+     * @returns an AST node or null in case of syntax error
+     * @throws an error if an internal error occurs (e.g. if the scanner could not be initialized)
+     */
+    public parseLine(line : string, lineNumber : number) : InstanceDecl | MessageOccurrance | Note | null {
+
+        this.lexer.input(line);        
+
+        try {                
+            let tokens = this.lexer.tokens();
+            if (tokens.length == 1 && tokens[0].isA("EOF"))
+                return null; // Empty line (or only containing whitespace)
+
+            for (let token of tokens) {
+                token.line = lineNumber;
+            }
+
+            // Scanning successful, now parse the tokens
+            let instanceDecl = isInstanceDecl(tokens);
+            if (instanceDecl)
+                return instanceDecl;
+
+            let messageOccurrance = isMessageOccurrance(tokens);
+            if (messageOccurrance)
+                return messageOccurrance;
+
+            let note = isNote(tokens);
+            if (note)
+                return note;
+
+            return null;
+        }
+        catch (e) {
+            // Syntax error
+            return null;
+        }
     }
+
 }
 
 /**
@@ -164,6 +192,7 @@ export class InstanceDecl {
     address : Token;    
     structureExpr : Token[] = []; // Simplified list of tokens with semantic significance
     dynamicType : Token; // Dynamic instance type (omitted for built-in TargetRTS instances)
+    data : InstanceData; // Data associated with the instance
 }
 
 /**
@@ -174,6 +203,14 @@ export class MessageData {
     time2_receive : number | undefined = undefined;
     time3_handle : number | undefined = undefined;
 }
+
+/**
+ * Data associated with an instance
+ */
+export class InstanceData {
+    thread_name : string = '';
+}
+
 
 /**
  * AST node for a message occurrance
@@ -324,6 +361,11 @@ function isInstanceDecl(tokens : Token[]) : InstanceDecl | null {
         instanceDecl.dynamicType = matchedToken[1];
     });
 
+    // instance data (optional)
+    matchTokens(index, tokens, ['instance-data'], (matchedToken) => {
+        instanceDecl.data = matchedToken[0].value as InstanceData;
+    });
+
     return instanceDecl;    
 }
 
@@ -396,4 +438,113 @@ function isNote(tokens : Token[]) : Note | null {
         return null; // syntax error
 
     return note;    
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+ * A line from a trace file and its corresponding AST node
+ */
+export class LineAndNode {
+    line: string;
+    astNode: InstanceDecl | MessageOccurrance | Note;
+
+    constructor(line: string, astNode: InstanceDecl | MessageOccurrance | Note) {
+        this.line = line;
+        this.astNode = astNode;
+    }
+}
+
+class MessageSortData {
+    time: number;
+    msg: string;   
+    msgOccurrance: MessageOccurrance; 
+
+    constructor(time: number, msgOccurrance: MessageOccurrance, msg: string) {
+        this.time = time;
+        this.msgOccurrance = msgOccurrance;
+        this.msg = msg;                
+    }
+};
+
+export enum SortCriteria {
+    RECEIVE_TIME,
+    HANDLE_TIME
+}
+
+/**
+ * Sort a trace's messages according to some criteria
+ */
+export class TraceSorter {
+
+    private messages: MessageSortData[] = [];
+    private lines : string[] = [];
+    private sortCriteria : SortCriteria;
+    private traceParser : TraceParser;
+
+    constructor(sortCriteria : SortCriteria, traceParser : TraceParser = new TraceParser()) {
+        this.sortCriteria = sortCriteria;
+        this.traceParser = traceParser;
+    }
+
+    /**
+     * Parse a line from a trace file, and store it for later sorting
+     * @param line a line from a trace file
+     * @param line line number for the line
+     * @returns an AST node or null in case of syntax error
+     * @throws an error if an internal error occurs (e.g. if the scanner could not be initialized)
+     */
+    public parseLineForSorting(line : string, lineNumber : number) : InstanceDecl | MessageOccurrance | Note | null {
+        this.lines.push(line);
+        let astNode = this.traceParser.parseLine(line, lineNumber);
+        if (astNode instanceof MessageOccurrance) {
+            if (this.sortCriteria == SortCriteria.RECEIVE_TIME && astNode.data.time2_receive !== undefined) {
+                this.messages.push( new MessageSortData(astNode.data.time2_receive, astNode, line) );
+            }
+            else if (this.sortCriteria == SortCriteria.HANDLE_TIME && astNode.data.time3_handle !== undefined) {
+                this.messages.push( new MessageSortData(astNode.data.time3_handle, astNode, line) );
+            }
+            
+        }
+        return astNode
+    }
+
+    /**
+     * Sort stored messages by the specified criteria and then return all stored lines in that order
+     * @returns 
+     */
+    public getSortedMessages() : LineAndNode[] {
+        if (this.messages.length == 0) {            
+            return [];
+        }
+        
+        this.messages.sort( (a, b) => {
+            return a.time - b.time;            
+        });
+
+        let result: LineAndNode[] = [];
+        let startIndex = 0;
+        let i = 0;
+        for (const line of this.lines) {        
+            let astNode = this.traceParser.parseLine(line, i++);
+            if (astNode instanceof MessageOccurrance) {
+                
+                let index = startIndex;
+                for (; index < this.messages.length; index++) {
+                    let msg = this.messages[index];
+                    if (msg.msg === line) {
+                        let messages : LineAndNode[] = this.messages.slice(startIndex, index + 1).map(m => {return new LineAndNode(m.msg, m.msgOccurrance) }); 
+                        result.push(...messages);
+                        startIndex = index + 1;
+                        break;
+                    }                    
+                }
+            }
+            else {
+                result.push(new LineAndNode(line, astNode));
+            }
+        }
+
+        return result;
+    }
 }

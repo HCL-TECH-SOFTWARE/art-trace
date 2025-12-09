@@ -23,7 +23,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import readline from 'readline';
-import { parseLine, InstanceDecl, MessageOccurrance, TraceParserUtils } from 'art-trace';
+import { TraceParser, InstanceDecl, MessageOccurrance, TraceParserUtils } from 'art-trace';
+import { trace } from 'console';
 
 const filePath = path.join(__dirname, '../traces/MoreOrLess/trace-with-timestamps.art-trace');
 
@@ -36,8 +37,11 @@ try {
     let applicationParticipantDeclared = false;
     let systemParticipantDeclared = false;
     let timerParticipantDeclared = false;
+    
+    let traceParser = new TraceParser();
+
     for await (const line of rl) {        
-        let astNode = parseLine(line, i++);
+        let astNode = traceParser.parseLine(line, i++);
         if (astNode instanceof InstanceDecl) {
             instanceMap.set(astNode.address.text, astNode);
         }   
@@ -51,6 +55,11 @@ try {
             let eventData = astNode.data.paramData;
             console.log(`${astNode.senderName}(${senderType}) -> ${astNode.receiverName}(${receiverType}) : ${astNode.event.text}(${eventData})`);
         }
+    }
+
+    // If trace configuration is available, print trace start time
+    if (traceParser.traceConfiguration && traceParser.traceConfiguration.hasOwnProperty('trace')) {
+        console.log("\n// Trace date:" + traceParser.traceConfiguration.trace.start_time);        
     }
 }
 finally {

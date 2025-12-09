@@ -1,0 +1,79 @@
+// Trace configuration:
+// {
+//     "timestamps": {
+//         "documentation": {
+//             "mode": "absolute/relative(default)"
+//             , "precision": "milli/micro/nano(default)"
+//             , "time1_send": "true/false(default), time when sender places message into the message queue"
+//             , "time2_receive": "true/false(default), time when controller delivers the message to the receiver"
+//             , "time3_handle": "true/false(default), time when message was processed by the receiver"
+//         }
+//         , "mode": "relative"
+//         , "precision": "nano"
+//         , "time1_send": false
+//         , "time2_receive": true
+//         , "time3_handle": true
+//     }
+//     , "trace": {
+//         "start_time": "2025-12-04 13:58:22.810617400"
+//     }
+// }
+instance 0x000002836E4DB430 Top : RTSuperActor { "thread_name": "main" }
+instance 0x000002836E4E31B0 fixedPart[0] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4E31B0 fixedPart : initialize() { "time2_receive": 58092700, "time3_handle": 60279400 }
+instance 0x000002836E4DB790 fixedPart[1] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4DB790 fixedPart : initialize() { "time2_receive": 60281100, "time3_handle": 60285600 }
+instance 0x000002836E4D8780 fixedPart[2] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4D8780 fixedPart : initialize() { "time2_receive": 60286300, "time3_handle": 60289500 }
+instance 0x000002836E4D87F0 fixedPart[3] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4D87F0 fixedPart : initialize() { "time2_receive": 60290300, "time3_handle": 60293600 }
+instance 0x000002836E4DD6E0 fixedPart[4] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4DD6E0 fixedPart : initialize() { "time2_receive": 60294200, "time3_handle": 60298000 }
+instance 0x000002836E4DD750 fixedPart[5] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4DD750 fixedPart : initialize() { "time2_receive": 60298700, "time3_handle": 60305100 }
+instance 0x000002836E4FE2F0 fixedPart[6] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4FE2F0 fixedPart : initialize() { "time2_receive": 60305800, "time3_handle": 60309800 }
+instance 0x000002836E4FE360 fixedPart[7] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4FE360 fixedPart : initialize() { "time2_receive": 60310500, "time3_handle": 60313600 }
+instance 0x000002836E4FE3D0 fixedPart[8] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4FE3D0 fixedPart : initialize() { "time2_receive": 60314400, "time3_handle": 60317400 }
+instance 0x000002836E512AE0 fixedPart[9] : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E512AE0 fixedPart : initialize() { "time2_receive": 60318100, "time3_handle": 60321200 }
+instance 0x000002836E512BC0 thePart.cap2 : Cap2 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E512BC0 cap2 : initialize() { "time2_receive": 60328500, "time3_handle": 60331900 }
+instance 0x000002836E50E440 thePart : Cap1 { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E50E440 thePart : initialize() { "time2_receive": 60328400, "time3_handle": 60336500 }
+instance 0x000002836E4DB160 application : Top { "thread_name": "main" }
+0x000002836E4DB430 Top -> 0x000002836E4DB160 application : initialize() { "time2_receive": 58092400, "time3_handle": 60340400 }
+instance 0x000002836E4FE510 specials : RTTimerActor { "thread_name": "time" }
+0x000002836E4FE510 specials -> 0x000002836E4DB430 Top.timer : timeout() { "time2_receive": 58066500, "time3_handle": 60344900 }
+0x000002836E50E440 thePart.p2 -> 0x000002836E512BC0 cap2.p : getIndex() { "invoke": "0x000000D5675DED40", "time2_receive": 60520200, "time3_handle": 60529300 }
+0x000002836E512BC0 cap2.p -> 0x000002836E50E440 thePart.p2 : getIndex_reply(int 0) { "reply": "0x000000D5675DED40", "time2_receive": 60530300, "time3_handle": 60535100 }
+0x000002836E4DB160 application.p -> 0x000002836E50E440 thePart.p : foo(int 42) { "invoke": "0x000000D5675DF210", "time2_receive": 60347900, "time3_handle": 60594900 }
+0x000002836E50E440 thePart.p -> 0x000002836E4DB160 application.p : foo_reply(int 43) { "reply": "0x000000D5675DF210", "time2_receive": 60595600, "time3_handle": 60598300 }
+0x000002836E4DB160 application.p -> 0x000002836E50E440 thePart.p : bar(bool true) { "invoke": "0x000000D5675DF0B0", "time2_receive": 60650800, "time3_handle": 60706500 }
+0x000002836E4DB160 application.p -> 0x000002836E50E440 thePart.p : foo(int 12) { "invoke": "0x000000D5675DF210", "time2_receive": 60707800, "time3_handle": 60815800 }
+0x000002836E50E440 thePart.p -> 0x000002836E4DB160 application.p : foo_reply(int 13) { "reply": "0x000000D5675DF210", "time2_receive": 60816500, "time3_handle": 60819000 }
+0x000002836E4DB160 application.p2[3] -> 0x000002836E4D87F0 fixedPart.p : getIndex() { "invoke": "0x000000D5675DF210", "time2_receive": 60871000, "time3_handle": 60932300 }
+0x000002836E4D87F0 fixedPart.p -> 0x000002836E4DB160 application.p2[3] : getIndex_reply(int 3) { "reply": "0x000000D5675DF210", "time2_receive": 60933100, "time3_handle": 60937000 }
+0x000002836E4DB160 application.p2[0] -> 0x000002836E4E31B0 fixedPart.p : getIndex() { "invoke": "0x000002836E51C6A8", "time2_receive": 60991300, "time3_handle": 60995900 }
+0x000002836E4E31B0 fixedPart.p -> 0x000002836E4DB160 application.p2[0] : getIndex_reply(int 0) { "reply": "0x000002836E51C6A8", "time2_receive": 60996600, "time3_handle": 60999600 }
+0x000002836E4DB160 application.p2[1] -> 0x000002836E4DB790 fixedPart.p : getIndex() { "invoke": "0x000002836E51C760", "time2_receive": 61000300, "time3_handle": 61003200 }
+0x000002836E4DB790 fixedPart.p -> 0x000002836E4DB160 application.p2[1] : getIndex_reply(int 1) { "reply": "0x000002836E51C760", "time2_receive": 61003900, "time3_handle": 61006600 }
+0x000002836E4DB160 application.p2[2] -> 0x000002836E4D8780 fixedPart.p : getIndex() { "invoke": "0x000002836E51C818", "time2_receive": 61007300, "time3_handle": 61010300 }
+0x000002836E4D8780 fixedPart.p -> 0x000002836E4DB160 application.p2[2] : getIndex_reply(int 2) { "reply": "0x000002836E51C818", "time2_receive": 61011000, "time3_handle": 61013800 }
+0x000002836E4DB160 application.p2[3] -> 0x000002836E4D87F0 fixedPart.p : getIndex() { "invoke": "0x000002836E51C8D0", "time2_receive": 61014400, "time3_handle": 61017200 }
+0x000002836E4D87F0 fixedPart.p -> 0x000002836E4DB160 application.p2[3] : getIndex_reply(int 3) { "reply": "0x000002836E51C8D0", "time2_receive": 61017800, "time3_handle": 61020500 }
+0x000002836E4DB160 application.p2[4] -> 0x000002836E4DD6E0 fixedPart.p : getIndex() { "invoke": "0x000002836E51C988", "time2_receive": 61021300, "time3_handle": 61024100 }
+0x000002836E4DD6E0 fixedPart.p -> 0x000002836E4DB160 application.p2[4] : getIndex_reply(int 4) { "reply": "0x000002836E51C988", "time2_receive": 61024700, "time3_handle": 61027400 }
+0x000002836E4DB160 application.p2[5] -> 0x000002836E4DD750 fixedPart.p : getIndex() { "invoke": "0x000002836E51CA40", "time2_receive": 61028100, "time3_handle": 61030900 }
+0x000002836E4DD750 fixedPart.p -> 0x000002836E4DB160 application.p2[5] : getIndex_reply(int 5) { "reply": "0x000002836E51CA40", "time2_receive": 61031500, "time3_handle": 61034200 }
+0x000002836E4DB160 application.p2[6] -> 0x000002836E4FE2F0 fixedPart.p : getIndex() { "invoke": "0x000002836E51CAF8", "time2_receive": 61034900, "time3_handle": 61037700 }
+0x000002836E4FE2F0 fixedPart.p -> 0x000002836E4DB160 application.p2[6] : getIndex_reply(int 6) { "reply": "0x000002836E51CAF8", "time2_receive": 61038300, "time3_handle": 61041100 }
+0x000002836E4DB160 application.p2[7] -> 0x000002836E4FE360 fixedPart.p : getIndex() { "invoke": "0x000002836E51CBB0", "time2_receive": 61041800, "time3_handle": 61044700 }
+0x000002836E4FE360 fixedPart.p -> 0x000002836E4DB160 application.p2[7] : getIndex_reply(int 7) { "reply": "0x000002836E51CBB0", "time2_receive": 61045900, "time3_handle": 61048700 }
+0x000002836E4DB160 application.p2[8] -> 0x000002836E4FE3D0 fixedPart.p : getIndex() { "invoke": "0x000002836E51CC68", "time2_receive": 61049400, "time3_handle": 61052200 }
+0x000002836E4FE3D0 fixedPart.p -> 0x000002836E4DB160 application.p2[8] : getIndex_reply(int 8) { "reply": "0x000002836E51CC68", "time2_receive": 61052900, "time3_handle": 61055700 }
+0x000002836E4DB160 application.p2[9] -> 0x000002836E512AE0 fixedPart.p : getIndex() { "invoke": "0x000002836E51CD20", "time2_receive": 61056400, "time3_handle": 61059200 }
+0x000002836E512AE0 fixedPart.p -> 0x000002836E4DB160 application.p2[9] : getIndex_reply(int 9) { "reply": "0x000002836E51CD20", "time2_receive": 61059800, "time3_handle": 61062600 }
+0x000002836E50E440 thePart.p -> 0x000002836E4DB160 application.p : ack() { "time2_receive": 60347300, "time3_handle": 61168000 }

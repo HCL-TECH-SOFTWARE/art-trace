@@ -23,75 +23,41 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import readline from 'readline';
-import { parseLine, InstanceDecl, MessageOccurrance, TraceParserUtils } from 'art-trace';
-import { start } from 'repl';
+import { TraceSorter, SortCriteria } from 'art-trace';
 
-class Message {
-    receiveTime: number;
-    msg: string;    
-    constructor(handleTime: number, msg: string) {
-        this.receiveTime = handleTime;
-        this.msg = msg;        
+// Take trace file path from command line arguments
+let inFilePath: string;
+let outFilePath: string;
+process.argv.forEach(function (val, index, array) {
+    if (val.startsWith("--file=")) {
+        inFilePath = val.substring("--file=".length);
     }
-};
+    else if (val.startsWith("--out=")) {
+        outFilePath = val.substring("--out=".length);
+    }
+});
 
-const filePath = path.join(__dirname, '../traces/NestedFixedParts/.trace.art-trace');
+const filePath = inFilePath ? inFilePath : path.join(__dirname, '../traces/NestedFixedParts/.trace.art-trace');
 
 // Read trace and return messages sorted by receive time
 async function sortOnReceiveTime(filePath : string) : Promise<string[]> {
     let input = fs.createReadStream(filePath, { encoding: 'utf8' });
     let rl = readline.createInterface({ input, crlfDelay: Infinity });
 
-    let result: string[] = [];
-    try {
-        let i = 0;  
-        let messages: Message[] = [];  
-        
+    try {              
+        let traceSorter = new TraceSorter(SortCriteria.RECEIVE_TIME);
+
+        let i = 0;
         for await (const line of rl) {        
-            let astNode = parseLine(line, i++);
-            if (astNode instanceof MessageOccurrance) {
-                if (astNode.data.time2_receive !== undefined) {
-                    messages.push( new Message(astNode.data.time2_receive, line) );
-                }
+            traceSorter.parseLineForSorting(line, i++);            
+        }
+        let sorted = traceSorter.getSortedMessages();
                 
-            }
-        }
-        if (messages.length == 0) {
-            console.log("--> No message with timestamps found in trace");
-            return result;
-        }
-        
-        let sorted = messages.sort( (a, b) => a.receiveTime - b.receiveTime );
-        
-        // Iterate input lines again and replace message lines with sorted ones        
-        let startIndex = 0;
-        input = fs.createReadStream(filePath, { encoding: 'utf8' });
-        rl = readline.createInterface({ input, crlfDelay: Infinity });
-        for await (const line of rl) {        
-            let astNode = parseLine(line, i++);
-            if (astNode instanceof MessageOccurrance) {
-                
-                let index = startIndex;
-                for (; index < sorted.length; index++) {
-                    let msg = sorted[index];
-                    if (msg.msg === line) {
-                        let messages : string[] = sorted.slice(startIndex, index + 1).map(m => m.msg); 
-                        result.push(...messages);
-                        startIndex = index + 1;
-                        break;
-                    }                    
-                }
-            }
-            else {
-                result.push(line);
-            }
-        }
-        
-        return result;
+        return sorted.map(obj => obj.line);
     }
     catch (err) {
         console.error("Error processing trace file: ", err);
-        return result;
+        return [];
     }
     finally {
         rl.close();
@@ -101,7 +67,13 @@ async function sortOnReceiveTime(filePath : string) : Promise<string[]> {
 
 let sorted = await sortOnReceiveTime(filePath);
 
-console.log("Messages sorted by receive time:");
-for (let line of sorted) {
-    console.log(line);
+if (outFilePath) {
+    fs.writeFileSync(outFilePath, sorted.join("\n"), { encoding: 'utf8' });
+    console.log(`Sorted trace written to ${outFilePath}`);
+}
+else {
+    console.log("Messages sorted by receive time:");
+    for (let line of sorted) {
+        console.log(line);
+    }
 }

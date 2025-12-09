@@ -33,16 +33,19 @@
             "program": "${workspaceFolder}/sortOnReceiveTime.ts",
             "request": "launch",
             "preLaunchTask": "tsc: build - tsconfig.json",
-            "outFiles": ["${workspaceFolder}/out/**/*.js"],
-            "type": "node"
+            "outFiles": ["${workspaceFolder}/out/**/*.js", "${workspaceFolder:art-trace}/dist/*.js"],
+            "type": "node",
+            "args": ["--file=C:\\git\\rtistic-pub-doc\\art-comp-test\\tests\\invoke_reply_target\\default\\.trace.art-trace",
+        "--out=C:\\temp\\sorted_trace.art-trace"]
         },
         {
             "name": "googleTraceEventFormat",
             "program": "${workspaceFolder}/googleTraceEventFormat.ts",
             "request": "launch",
             "preLaunchTask": "tsc: build - tsconfig.json",
-            "outFiles": ["${workspaceFolder}/out/**/*.js"],
-            "type": "node"
+            "outFiles": ["${workspaceFolder}/out/**/*.js", "${workspaceFolder:art-trace}/dist/*.js"],
+            "type": "node",
+            "args": ["--file=traces/InvokeReply/trace-with-thread-info.art-trace", "--out=C:\\temp\\google-trace.json"]
         }
     ]
 }

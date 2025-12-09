@@ -23,7 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import readline from 'readline';
-import { parseLine, InstanceDecl, MessageOccurrance, TraceParserUtils } from 'art-trace';
+import { TraceParser, MessageOccurrance } from 'art-trace';
 
 class HandleTime {
     diff: number;
@@ -45,8 +45,10 @@ try {
     let i = 0;  
     let handleTimes: HandleTime[] = [];  
     
+    let traceParser = new TraceParser();
+
     for await (const line of rl) {        
-        let astNode = parseLine(line, i++);
+        let astNode = traceParser.parseLine(line, i++);
         if (astNode instanceof MessageOccurrance) {
             if (astNode.data.time2_receive !== undefined && astNode.data.time3_handle !== undefined) {
                 let diff = astNode.data.time3_handle - astNode.data.time2_receive;

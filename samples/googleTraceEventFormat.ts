@@ -23,8 +23,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import readline from 'readline';
-import { parseLine, InstanceDecl, MessageOccurrance, TraceParserUtils } from 'art-trace';
-import { start } from 'repl';
+import { TraceParser, MessageOccurrance, InstanceDecl } from 'art-trace';
 
 class Message {
     receiveTime: number;
@@ -41,9 +40,9 @@ class GTEF_DurationEvent {
     ph: string;
     ts: number;
     pid: number;
-    tid: number;
+    tid: string;
 
-    constructor(name: string, cat: string, ph: string, ts: number, pid: number, tid: number) {
+    constructor(name: string, cat: string, ph: string, ts: number, pid: number, tid: string) {
         this.name = name;
         this.cat = cat;
         this.ph = ph;
@@ -53,7 +52,19 @@ class GTEF_DurationEvent {
     }
 }
 
-const filePath = path.join(__dirname, '../traces/NestedFixedParts/.trace.art-trace');
+// Take trace file path from command line arguments
+let inFilePath: string;
+let outFilePath: string;
+process.argv.forEach(function (val, index, array) {
+    if (val.startsWith("--file=")) {
+        inFilePath = val.substring("--file=".length);
+    }
+    else if (val.startsWith("--out=")) {
+        outFilePath = val.substring("--out=".length);
+    }
+});
+
+const filePath = inFilePath ? inFilePath : path.join(__dirname, '../traces/NestedFixedParts/.trace.art-trace');
 
 // Read trace and sort messages by receive time to create Google Trace Event Format output
 async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[]> {
@@ -64,14 +75,21 @@ async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[
     try {
         let i = 0;  
         let messages: Message[] = [];  
+        let traceParser = new TraceParser();
+        const instanceMap = new Map<string /* address */, string /* thread */>();
         
-        for await (const line of rl) {        
-            let astNode = parseLine(line, i++);
+        for await (const line of rl) {     
+            let astNode = traceParser.parseLine(line, i++);
+            
             if (astNode instanceof MessageOccurrance) {
                 if (astNode.data.time2_receive !== undefined && astNode.data.time3_handle !== undefined) {
                     messages.push( new Message(astNode.data.time2_receive, astNode) );
                 }
                 
+            }
+            else if (astNode instanceof InstanceDecl) {
+                let threadName = (astNode.data.thread_name !== undefined) ? astNode.data.thread_name : 'UnknownThread';
+                instanceMap.set(astNode.address.text, threadName);
             }
         }
         if (messages.length == 0) {
@@ -100,7 +118,7 @@ async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[
                         "E",
                         Math.round(finishedEvent.msg.data.time3_handle / 1000), // Convert from ns to µs
                         1, // pid
-                        1  // tid
+                        instanceMap.get(msg.msg.receiver.text)  // tid
                     );
                     result.push(endEvent);
                 }
@@ -115,7 +133,7 @@ async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[
                 "B",
                 Math.round(msg.receiveTime / 1000), // Convert from ns to µs
                 1, // pid
-                1  // tid
+                instanceMap.get(msg.msg.receiver.text)  // tid
             );
             result.push(beginEvent);            
 
@@ -135,7 +153,7 @@ async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[
                 "E",
                 Math.round(finishedEvent.msg.data.time3_handle / 1000), // Convert from ns to µs
                 1, // pid
-                1  // tid
+                instanceMap.get(finishedEvent.msg.receiver.text)  // tid
             );
             result.push(endEvent);
         }
@@ -164,5 +182,11 @@ let gtefObject = {
 
 let json = JSON.stringify(gtefObject);
 
-console.log(json);
+if (outFilePath) {
+    fs.writeFileSync(outFilePath, json, { encoding: 'utf8' });
+    console.log(`Sorted trace written to ${outFilePath}`);
+}
+else {
+    console.log(json);
+}
 
