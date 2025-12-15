@@ -44,8 +44,8 @@ export class TraceParser {
             ctx.accept("name");
         });        
         // String
-        this.lexer.rule(/"((?:\\"|[^\r\n])*)"/, (ctx, match) => {
-            let str = match[1].replace(/\\"/g, "\"");
+        this.lexer.rule(/"(?:[^"\\\r\n]|\\.)*"/, (ctx, match) => {
+            let str = match[0].substring(1, match[0].length - 1); // Remove quotes
             ctx.accept("string", str);
         });                
         // Line comment (//)
@@ -98,20 +98,26 @@ export class TraceParser {
         this.lexer.rule(/\]/, (ctx, match) => {
             ctx.accept("close-square-bracket");
         });
-        // Instance data (JSON object)
+        // Instance or note data (JSON object)
         this.lexer.rule(/\{.*$/, (ctx, match) => {
-            let str = match[0];                    
-            let id = new InstanceData();
+            let str = match[0];
+            let data : any;
             try {
-                let j = JSON.parse(str);
-                if (j.thread_name !== undefined)
-                    id.thread_name = j.thread_name;
+                let j = JSON.parse(str);                
+                if (j.thread_name !== undefined) {
+                    data = new InstanceData();
+                    data.thread_name = j.thread_name;
+                }
+                else if (j.time !== undefined) {
+                    data = new NoteData();
+                    data.time = j.time;
+                }
             }
             catch (e) {
                 // No valid JSON data found 
             }        
 
-            ctx.accept("instance-data", id);
+            ctx.accept("optional-data", data);
         });   
         // Message data (any text enclosed in parentheses, optionally followed by JSON)
         this.lexer.rule(/\(.*$/, (ctx, match) => {
@@ -126,6 +132,10 @@ export class TraceParser {
                         md.time2_receive = j.time2_receive;
                     if (j.time3_handle !== undefined)
                         md.time3_handle = j.time3_handle;
+                    if (j.invoke !== undefined)
+                        md.invoke = j.invoke;
+                    if (j.reply !== undefined)
+                        md.reply = j.reply;
                 }
                 catch (e) {
                     // No JSON data found after closing parenthesis
@@ -202,6 +212,8 @@ export class MessageData {
     paramData : string = ''; // Parameter data for the message
     time2_receive : number | undefined = undefined;
     time3_handle : number | undefined = undefined;
+    invoke : string | undefined = undefined; // Message address for a synchronous invoke
+    reply : string | undefined = undefined; // Message address for a synchronous reply
 }
 
 /**
@@ -229,11 +241,19 @@ export class MessageOccurrance {
 }
 
 /**
+ * Data associated with a note
+ */
+export class NoteData {
+    time : number | undefined = undefined; // Timestamp associated with the note
+}
+
+/**
  * AST node for a note
  */
 export class Note {    
     text: string;
     line?: number;
+    data : NoteData; // Data associated with the note
 }
 
 /**
@@ -362,7 +382,7 @@ function isInstanceDecl(tokens : Token[]) : InstanceDecl | null {
     });
 
     // instance data (optional)
-    matchTokens(index, tokens, ['instance-data'], (matchedToken) => {
+    matchTokens(index, tokens, ['optional-data'], (matchedToken) => {
         instanceDecl.data = matchedToken[0].value as InstanceData;
     });
 
@@ -436,6 +456,11 @@ function isNote(tokens : Token[]) : Note | null {
         note.line = matchedToken[0].line;        
     })) 
         return null; // syntax error
+
+    // note data (optional)
+    matchTokens(index, tokens, ['optional-data'], (matchedToken) => {
+        note.data = matchedToken[0].value as NoteData;
+    });
 
     return note;    
 }
