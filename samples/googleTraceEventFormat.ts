@@ -23,15 +23,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 import readline from 'readline';
-import { TraceParser, MessageOccurrance, InstanceDecl } from 'art-trace';
+import { TraceParser, MessageOccurrance, InstanceDecl, Note } from 'art-trace';
 
-class Message {
-    receiveTime: number;
+class TimedEvent {
+    timestamp: number;
+    constructor(timestamp: number) {
+        this.timestamp = timestamp;
+    }
+};
+
+class Message extends TimedEvent {
     msg: MessageOccurrance;    
     constructor(receiveTime: number, msg: MessageOccurrance) {
-        this.receiveTime = receiveTime;
-        this.msg = msg;        
+        super(receiveTime);
+        this.msg = msg;
     }
+};
+
+class NoteEvent extends TimedEvent {
+    note: Note;
+    constructor(receiveTime: number, note: Note) {
+        super(receiveTime);
+        this.note = note;
+    } 
 };
 
 class GTEF_DurationEvent {
@@ -39,16 +53,32 @@ class GTEF_DurationEvent {
     cat: string;
     ph: string;
     ts: number;
-    pid: number;
+    pid: string;
     tid: string;
 
-    constructor(name: string, cat: string, ph: string, ts: number, pid: number, tid: string) {
+    constructor(name: string, cat: string, ph: string, ts: number, pid: string, tid: string) {
         this.name = name;
         this.cat = cat;
         this.ph = ph;
         this.ts = ts;
         this.pid = pid;
         this.tid = tid;
+    }
+}
+
+class GTEF_InstantEvent {
+    name: string;
+    ph: string;
+    ts: number;
+    pid: string;
+    s: string;
+
+    constructor(name: string, ts: number, pid: string) {
+        this.name = name;
+        this.ph = 'i';
+        this.ts = ts;
+        this.pid = pid;
+        this.s = 'g'; // Only support global scope for now
     }
 }
 
@@ -64,6 +94,11 @@ process.argv.forEach(function (val, index, array) {
     }
 });
 
+// Convert from ns to µs
+function nsToMicroseconds(ns: number): number {    
+    return ns / 1e3;
+}
+
 const filePath = inFilePath ? inFilePath : path.join(__dirname, '../traces/NestedFixedParts/.trace.art-trace');
 
 // Read trace and sort messages by receive time to create Google Trace Event Format output
@@ -71,40 +106,74 @@ async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[
     let input = fs.createReadStream(filePath, { encoding: 'utf8' });
     let rl = readline.createInterface({ input, crlfDelay: Infinity });
 
-    let result: GTEF_DurationEvent[] = [];
+    let result: any[] = [];
     try {
         let i = 0;  
-        let messages: Message[] = [];  
+        let events: TimedEvent[] = [];  
         let traceParser = new TraceParser();
         const instanceMap = new Map<string /* address */, string /* thread */>();
+        let applicationName = "UnknownApplication";
         
         for await (const line of rl) {     
             let astNode = traceParser.parseLine(line, i++);
-            
+            if (astNode === null)
+                continue
+
+            if (traceParser.traceConfiguration && traceParser.traceConfiguration?.trace?.application) {
+                applicationName = traceParser.traceConfiguration.trace.application;        
+            }
+
             if (astNode instanceof MessageOccurrance) {
                 if (astNode.data.time2_receive !== undefined && astNode.data.time3_handle !== undefined) {
-                    messages.push( new Message(astNode.data.time2_receive, astNode) );
+                    events.push( new Message(astNode.data.time2_receive, astNode) );
+                }                
+            }
+            else if (astNode instanceof Note) {
+                if (astNode.data.time !== undefined) {
+                    events.push( new NoteEvent(astNode.data.time, astNode) );
                 }
-                
             }
             else if (astNode instanceof InstanceDecl) {
                 let threadName = (astNode.data.thread_name !== undefined) ? astNode.data.thread_name : 'UnknownThread';
                 instanceMap.set(astNode.address.text, threadName);
             }
         }
-        if (messages.length == 0) {
-            console.log("--> No message with timestamps found in trace");
+        if (events.length == 0) {
+            console.log("--> No trace events (messages or notes) with timestamps found in trace");
             return result;
         }
         
-        let sorted = messages.sort( (a, b) => a.receiveTime - b.receiveTime );
+        let sorted = events.sort( (a, b) => a.timestamp - b.timestamp );
         
-        // Keep stack of unfinished events (TODO: make it per thread)
-        let unfinishedEvents: Message[] = [];
+        // Keep stack of unfinished events for each thread
+        let callstacks = new Map<string /* thread name */, Message[] /* unfinished events */ >();        
 
         // Now create Google Trace Event Format output from the sorted messages
-        for (let msg of sorted) {
+        for (let event of sorted) {
+            if (event instanceof NoteEvent) {
+                // Translate to instant event
+                let gtefEvent = new GTEF_InstantEvent(
+                    event.note.text,                    
+                    nsToMicroseconds(event.timestamp),
+                    applicationName, // pid
+                );
+                result.push(gtefEvent);
+                continue;
+            }
+
+            let msg = event as Message;
             // Finish all unfinished events before the current message's receive time
+            let receiverThread = instanceMap.get(msg.msg.receiver.text);
+            if (!receiverThread) {
+                console.warn(`--> Warning: No thread found for receiver instance ${msg.msg.receiver.text}`);
+                continue;
+            }
+            let unfinishedEvents = callstacks.get(receiverThread);
+            if (!unfinishedEvents) {
+                unfinishedEvents = [];
+                callstacks.set(receiverThread, unfinishedEvents);
+            }
+            
             while (true) {
                 if (unfinishedEvents.length == 0) 
                     break;
@@ -116,47 +185,47 @@ async function sortAndTranslate(filePath : string) : Promise<GTEF_DurationEvent[
                         finishedEvent.msg.event.text,
                         "art-trace",
                         "E",
-                        Math.round(finishedEvent.msg.data.time3_handle / 1000), // Convert from ns to µs
-                        1, // pid
-                        instanceMap.get(msg.msg.receiver.text)  // tid
+                        nsToMicroseconds(finishedEvent.msg.data.time3_handle),
+                        applicationName, // pid
+                        receiverThread  // tid
                     );
                     result.push(endEvent);
                 }
                 else {
                     break; 
                 }
-            }
-            
+            }                    
+
             let beginEvent = new GTEF_DurationEvent(
                 msg.msg.event.text,
                 "art-trace",
                 "B",
-                Math.round(msg.receiveTime / 1000), // Convert from ns to µs
-                1, // pid
-                instanceMap.get(msg.msg.receiver.text)  // tid
+                nsToMicroseconds(msg.timestamp), 
+                applicationName, // pid
+                receiverThread  // tid
             );
             result.push(beginEvent);            
 
             unfinishedEvents.push(msg);
             // Keep unfinished events sorted according to their handle time
-            unfinishedEvents.sort( (a, b) => b.msg.data.time3_handle - a.msg.data.time3_handle );
+            unfinishedEvents.sort( (a, b) => a.msg.data.time3_handle - b.msg.data.time3_handle );
         }
         
         // Finish all remaining unfinished events
-        while (unfinishedEvents.length > 0) {
-            let lastEvent = unfinishedEvents[unfinishedEvents.length - 1];
-            
-            let finishedEvent = unfinishedEvents.pop()!;
-            let endEvent = new GTEF_DurationEvent(
-                finishedEvent.msg.event.text,
-                "art-trace",
-                "E",
-                Math.round(finishedEvent.msg.data.time3_handle / 1000), // Convert from ns to µs
-                1, // pid
-                instanceMap.get(finishedEvent.msg.receiver.text)  // tid
-            );
-            result.push(endEvent);
-        }
+        callstacks.forEach((unfinishedEvents: Message[], threadName: string) => {
+            while (unfinishedEvents.length > 0) {
+                let finishedEvent = unfinishedEvents.pop();                
+                let endEvent = new GTEF_DurationEvent(
+                    finishedEvent.msg.event.text,
+                    "art-trace",
+                    "E",
+                    nsToMicroseconds(finishedEvent.msg.data.time3_handle), 
+                    applicationName, // pid
+                    threadName  // tid
+                );
+                result.push(endEvent);
+            }
+        });
 
         return result;
     }
