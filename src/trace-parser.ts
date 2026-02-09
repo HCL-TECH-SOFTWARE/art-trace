@@ -551,7 +551,7 @@ export class TraceSorter {
         let startIndex = 0;
         let i = 0;
         for (const line of this.lines) {        
-            let astNode = this.traceParser.parseLine(line, i++);
+            let astNode = this.traceParser.parseLine(line, ++i);
             if (astNode instanceof MessageOccurrance) {
                 
                 let index = startIndex;
