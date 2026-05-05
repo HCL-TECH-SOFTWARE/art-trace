@@ -19,5 +19,3 @@ Read a trace file and sort the messages it contains according to the `time2_rece
 ## [googleTraceEventFormat](samples/googleTraceEventFormat.ts)
 Translate an .art-trace file into the [Google Trace Event format](https://docs.google.com/document/d/1CvAClvFfyA5R-PhYUmn5OOQtYMH4h6I0nSsKchNAySU). Currently this sample only generates B and E duration events.
 
-The conversion logic is available as part of this npm package through `GoogleTraceEventFormatConverter`, so tool integrations (for example a Code RealTime command) can reuse the same implementation instead of duplicating script code.
-
