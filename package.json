@@ -15,14 +15,8 @@
   ],
   "type": "module",
   "exports": {
-    ".": {
-      "import": "./dist/trace-parser.js",
-      "require": "./dist/trace-parser.cjs"
-    },
-    "./google-trace-event-format": {
-      "import": "./dist/google-trace-event-format.js",
-      "require": "./dist/google-trace-event-format.cjs"
-    }
+    "import": "./dist/trace-parser.js",
+    "require": "./dist/trace-parser.cjs"
   },
   "main": "dist/trace-parser.js",
   "repository": {
@@ -42,7 +36,7 @@
     "rollup": "^4.53.2"
   },
   "scripts": {
-    "build": "tsc && npx rollup ./dist/trace-parser.js --file dist/trace-parser.cjs --format cjs && npx rollup ./dist/google-trace-event-format.js --file dist/google-trace-event-format.cjs --format cjs",
+    "build": "tsc && npx rollup ./dist/trace-parser.js --file dist/trace-parser.cjs --format cjs",
     "test": "echo \"Error: no test specified\" && exit 1"
   }
 }
