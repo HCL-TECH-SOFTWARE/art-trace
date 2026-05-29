@@ -65,6 +65,8 @@ type TimedEvent = TimedMessageEvent | TimedNoteEvent;
 
 interface UntimedMessageEvent {
     message: MessageOccurrance;
+    missingTime2Receive: boolean;
+    missingTime3Handle: boolean;
 }
 
 interface UntimedNoteEvent {
@@ -123,7 +125,11 @@ function parseTimedEvents(
             if (messageData && typeof messageData.time2_receive === 'number' && typeof messageData.time3_handle === 'number') {
                 timedMessages.push(astNode);
             } else {
-                untimedEvents.push({ message: astNode });
+                untimedEvents.push({
+                    message: astNode,
+                    missingTime2Receive: !messageData || typeof messageData.time2_receive !== 'number',
+                    missingTime3Handle: !messageData || typeof messageData.time3_handle !== 'number'
+                });
             }
             continue;
         }
@@ -268,9 +274,30 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
             .reduce((max, event) => Math.max(max, event.ts), -1);
         let syntheticTimestamp = maxTimedTimestamp + 1;
 
-        warnings.push({
-            message: `${parsedTrace.untimedEvents.length} event(s) had no timestamp metadata and were exported as ordered instant events.`
-        });
+        let untimedMessages = 0;
+        let untimedNotes = 0;
+        for (const untimedEvent of parsedTrace.untimedEvents) {
+            if ('note' in untimedEvent) {
+                untimedNotes++;
+                continue;
+            }
+
+            untimedMessages++;
+        }
+
+        const warningParts: string[] = [];
+        if (untimedMessages > 0) {
+            warningParts.push(
+                `${untimedMessages} message event(s) could not be exported as duration events ` +
+                `because required timestamps were missing (time2_receive and/or time3_handle).`
+            );
+        }
+        if (untimedNotes > 0) {
+            warningParts.push(`${untimedNotes} note event(s) were missing the required time timestamp.`);
+        }
+        warningParts.push('These events were exported as instant events to preserve trace order.');
+
+        warnings.push({ message: warningParts.join(' ') });
 
         for (const untimedEvent of parsedTrace.untimedEvents) {
             if ('note' in untimedEvent) {
