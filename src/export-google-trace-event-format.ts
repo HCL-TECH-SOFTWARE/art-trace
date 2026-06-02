@@ -287,15 +287,20 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
 
         const warningParts: string[] = [];
         if (untimedMessages > 0) {
+            const messageLabel = untimedMessages === 1 ? 'message' : 'messages';
+            const doVerb = untimedMessages === 1 ? 'does' : 'do';
             warningParts.push(
-                `${untimedMessages} message event(s) could not be exported as duration events ` +
-                `because required timestamps were missing (time2_receive and/or time3_handle).`
+                `${untimedMessages} ${messageLabel} were exported as instant events instead of duration events ` +
+                `because they ${doVerb} not contain both required timestamps: time2_receive and time3_handle.`
+            );
+            warningParts.push(
+                'For more information, see the documentation: ' +
+                'https://10.83.92.47:8884/code-realtime/running-and-debugging/tracing/#google-trace-event-format'
             );
         }
         if (untimedNotes > 0) {
             warningParts.push(`${untimedNotes} note event(s) were missing the required time timestamp.`);
         }
-        warningParts.push('These events were exported as instant events to preserve trace order.');
 
         warnings.push({ message: warningParts.join(' ') });
 
