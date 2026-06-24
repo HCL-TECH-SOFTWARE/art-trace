@@ -86,6 +86,16 @@ function tokenText(token: Token): string {
     return token.text;
 }
 
+function gtefMessageName(message: MessageOccurrance): string {
+    const eventName = tokenText(message.event);
+    const args = message.data.paramData?.trim();
+    if (!args) {
+        return eventName;
+    }
+
+    return `${eventName}(${args})`;
+}
+
 function inferApplicationNameFromInstance(astNode: InstanceDecl): string | undefined {
     if (!TraceParserUtils.isTopCapsuleInstance(astNode) || !astNode.dynamicType?.text) {
         return undefined;
@@ -226,7 +236,7 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
                     break;
                 }
                 traceEvents.push({
-                    name: tokenText(finishedEvent.event),
+                    name: gtefMessageName(finishedEvent),
                     cat: 'art-trace',
                     ph: 'E',
                     ts: nsToMicroseconds(finishedEvent.data.time3_handle as number),
@@ -240,7 +250,7 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
         }
 
         traceEvents.push({
-            name: tokenText(msg.event),
+            name: gtefMessageName(msg),
             cat: 'art-trace',
             ph: 'B',
             ts: nsToMicroseconds(event.timestamp),
@@ -259,7 +269,7 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
                 continue;
             }
             traceEvents.push({
-                name: tokenText(finishedEvent.event),
+                name: gtefMessageName(finishedEvent),
                 cat: 'art-trace',
                 ph: 'E',
                 ts: nsToMicroseconds(finishedEvent.data.time3_handle as number),
@@ -316,7 +326,7 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
                 continue;
             }
 
-            const eventName = tokenText(untimedEvent.message.event) || `${untimedEvent.message.senderName} -> ${untimedEvent.message.receiverName}`;
+            const eventName = gtefMessageName(untimedEvent.message) || `${untimedEvent.message.senderName} -> ${untimedEvent.message.receiverName}`;
             traceEvents.push({
                 name: eventName,
                 ph: 'i',
