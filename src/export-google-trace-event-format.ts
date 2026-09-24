@@ -27,14 +27,26 @@ export interface GTEFDurationEvent {
 
 export interface GTEFInstantEvent {
     name: string;
-    ph: 'i';
+    ph: 'I';
     ts: number;
     pid: string;
-    s: 'g';
+    tid?: string;
+    s: 'g' | 'p' | 't';
+}
+
+export interface GTEFMetadataEvent {
+    name: 'process_name' | 'thread_sort_index';
+    ph: 'M';
+    pid: string;
+    tid?: string;
+    args: {
+        name?: string;
+        sort_index?: number;
+    };
 }
 
 export interface GTEFOutput {
-    traceEvents: Array<GTEFDurationEvent | GTEFInstantEvent>;
+    traceEvents: Array<GTEFDurationEvent | GTEFInstantEvent | GTEFMetadataEvent>;
     displayTimeUnit: 'ns';
     otherData: {
         version: '1.0';
@@ -194,16 +206,46 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
     const parser = new TraceParser();
     const instanceToThread = new Map<string, string>();
     const warnings: GTEFTranslationWarning[] = [];
-    const traceEvents: Array<GTEFDurationEvent | GTEFInstantEvent> = [];
+    const traceEvents: Array<GTEFDurationEvent | GTEFInstantEvent | GTEFMetadataEvent> = [];
     const callstacks = new Map<string, MessageOccurrance[]>();
 
     const parsedTrace = parseTimedEvents(parser, traceText, instanceToThread);
+
+    traceEvents.push({
+        name: 'process_name',
+        ph: 'M',
+        pid: parsedTrace.applicationName,
+        args: {
+            name: parsedTrace.applicationName
+        }
+    });
+
+    const threadNames = [...new Set(instanceToThread.values())]
+        .sort((left, right) => {
+            const leftIsMain = left.toLowerCase() === 'main';
+            const rightIsMain = right.toLowerCase() === 'main';
+            if (leftIsMain !== rightIsMain) {
+                return leftIsMain ? -1 : 1;
+            }
+            return left.localeCompare(right);
+        });
+    for (const [threadIndex, threadName] of threadNames.entries()) {
+        traceEvents.push({
+            name: 'thread_sort_index',
+            ph: 'M',
+            pid: parsedTrace.applicationName,
+            tid: threadName,
+            args: {
+                sort_index: threadIndex
+            }
+        });
+    }
 
     for (const event of parsedTrace.timedEvents) {
         if ('note' in event) {
             traceEvents.push({
                 name: event.note.text,
-                ph: 'i',
+                ph: 'I',
                 ts: nsToMicroseconds(event.timestamp),
                 pid: parsedTrace.applicationName,
                 s: 'g'
@@ -281,7 +323,7 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
 
     if (parsedTrace.untimedEvents.length > 0) {
         const maxTimedTimestamp = traceEvents
-            .reduce((max, event) => Math.max(max, event.ts), -1);
+            .reduce((max, event) => ('ts' in event ? Math.max(max, event.ts) : max), -1);
         let syntheticTimestamp = maxTimedTimestamp + 1;
 
         let untimedMessages = 0;
@@ -318,7 +360,7 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
             if ('note' in untimedEvent) {
                 traceEvents.push({
                     name: untimedEvent.note.text || 'note',
-                    ph: 'i',
+                    ph: 'I',
                     ts: syntheticTimestamp++,
                     pid: parsedTrace.applicationName,
                     s: 'g'
@@ -327,13 +369,23 @@ export function toGoogleTraceEventFormat(traceText: string): GTEFTranslationResu
             }
 
             const eventName = gtefMessageName(untimedEvent.message) || `${untimedEvent.message.senderName} -> ${untimedEvent.message.receiverName}`;
+            const receiverAddress = tokenText(untimedEvent.message.receiver);
+            const receiverThread = instanceToThread.get(receiverAddress);
             traceEvents.push({
                 name: eventName,
-                ph: 'i',
+                ph: 'I',
                 ts: syntheticTimestamp++,
                 pid: parsedTrace.applicationName,
-                s: 'g'
+                tid: receiverThread,
+                s: receiverThread ? 't' : 'g'
             });
+
+            if (!receiverThread) {
+                warnings.push({
+                    message: `No thread found for receiver instance ${receiverAddress}`,
+                    receiverAddress
+                });
+            }
         }
     }
 
